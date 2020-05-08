@@ -14,6 +14,50 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
+///mongo
+const mongodb = require('mongodb');
+const bodyParser = require('body-parser');
+
+app.use(bodyParser.urlencoded({extended:false}));
+app.use(bodyParser.json());
+
+app.set('view engine', 'ejs')
+
+const MongoClient = require('mongodb').MongoClient;
+const uri = "mongodb+srv://atom:atom@cluster0-5i0bk.mongodb.net/test?retryWrites=true&w=majority";
+const client = new MongoClient(uri, { useNewUrlParser: true });
+
+client.connect(err => {
+    const collection = client.db("atom").collection("users");
+    console.log("sdf");
+    
+   client.close();
+  });
+
+app.get('/',(req,res) => {
+    
+    MongoClient.connect(uri,(err,db) => {
+        if (err) throw err
+
+        let dbo = db.db("atom")
+        let query = {}
+
+        dbo.collection("users").find(query).toArray((dbErr,result) => {
+            if(dbErr) throw dbErr
+
+            res.render('index',{'users' : result})
+
+            db.close()
+        })
+    })
+})
+
+////mongo
+
+
+
+
+
 // Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -49,7 +93,44 @@ io.on('connection', socket => {
     const user = getCurrentUser(socket.id);
 
     io.to(user.room).emit('message', formatMessage(user.username, msg));
+  //     MongoClient.connect(url,{useUnifiedTopology : true},(err,db)=>
+  //  {        if(err) throw err
+  //      var data={message:msg}
+  //     dbo.collection('messages').insertOne(data, (dbErr,result) => {
+  //       if(dbErr) 
+  //       throw dberr;
+  //     else
+  //       console.log("msg send to db")
+  //    })
+  //  })
+
+
+
+
+
   });
+  
+
+       // Handle input events
+       socket.on('input', function(data){
+        let name = data.name;
+        let message = data.message;
+
+       
+         else {
+            // Insert message
+            chat.insert({name: name, message: message}, function(){
+                client.emit('output', [data]);
+
+                // Send status object
+                sendStatus({
+                    message: 'Message sent',
+                    clear: true
+                });
+            });
+        }
+    });
+
 
   // Runs when client disconnects
   socket.on('disconnect', () => {
